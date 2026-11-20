@@ -17,7 +17,7 @@ docker compose up --build          # run from the project root; then open http:/
 **Without Docker** (must use the pinned versions: the model file is a pickle tied to scikit-learn 1.6.1 / pandas 2.2.3 / numpy 2.1.0)
 ```bash
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -r requirements.txt                         # full environment: notebook + API + MLflow + tests
+pip install -r requirements-dev.txt                     # full environment: notebook + API + MLflow + tests
 cd deploy
 uvicorn app.main:app --port 8000                        # then open http://localhost:8000
 pytest -q tests                                         # 17 tests (API, parity, MLflow registry)
@@ -107,7 +107,7 @@ model/             model_bundle.joblib, model_card.json, meta.json, operating_po
 scripts/           mlflow_log_run.py, notebook_mlflow_cell.py, log_serving_stats.py, reproduce_reference.py
 tests/             API, parity and MLflow tests
 requirements*.txt  API-only and MLflow dependency pins
-(project root) Dockerfile / Dockerfile.mlflow / docker-compose.yml / .dockerignore / requirements.txt (full environment)
+(project root) Dockerfile / Dockerfile.mlflow / docker-compose.yml / .dockerignore / requirements.txt (API, for cloud deploys) / requirements-dev.txt (full environment) / pyproject.toml (FastAPI Cloud entry point)
 ```
 **Verified:** both images build from the project root (`docker compose --profile mlflow build`); the API, MLflow server and serving monitor start healthy; `/health`, `/`, `/predict` and the leakage guard (HTTP 422) respond as documented; the `log-model` job registers a new `champion` version; `pytest -q tests` passes 17 of 17.
 

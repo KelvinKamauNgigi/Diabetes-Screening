@@ -1,0 +1,42 @@
+services:
+  api:
+    build: .
+    image: diabetes-screening-api:1.0
+    ports: ["8000:8000"]
+    environment:
+      API_KEY: ${API_KEY:-}             # set API_KEY in a .env file next to this file to require the X-API-Key header on /predict; empty = no key
+      # REFERRAL_THRESHOLD: "0.0909"    # override the frozen 10:1-cost threshold (policy decision)
+      MODEL_DIR: /srv/model
+    restart: unless-stopped
+
+  # ---- experiment tracking + model registry (optional):  docker compose --profile mlflow up --build -d ----
+  mlflow:
+    profiles: ["mlflow"]
+    build: { context: ., dockerfile: Dockerfile.mlflow }
+    image: diabetes-screening-mlflow:1.0
+    ports: ["5000:5000"]
+    volumes: ["mlflow-data:/mlflow-data"]          # runs, metrics, registry and artefacts survive restarts
+    restart: unless-stopped
+
+  # one-shot: records the packaged model in MLflow and registers a new version with the alias "champion"
+  #   docker compose --profile mlflow --profile mlflow-jobs run --rm log-model
+  log-model:
+    profiles: ["mlflow-jobs"]
+    image: diabetes-screening-mlflow:1.0
+    depends_on: { mlflow: { condition: service_healthy } }
+    environment: { MLFLOW_TRACKING_URI: "http://mlflow:5000" }
+    command: ["python", "scripts/mlflow_log_run.py"]
+    healthcheck: { disable: true }                 # the image healthcheck probes the MLflow server, which only runs in the mlflow service
+
+  # polls the API's aggregate counters into MLflow every 60 s (no patient data involved); starts with the mlflow profile
+  serving-monitor:
+    profiles: ["mlflow"]
+    image: diabetes-screening-mlflow:1.0
+    depends_on: { mlflow: { condition: service_healthy }, api: { condition: service_started } }
+    environment: { MLFLOW_TRACKING_URI: "http://mlflow:5000" }
+    command: ["python", "scripts/log_serving_stats.py", "--api", "http://api:8000", "--interval", "60"]
+    healthcheck: { disable: true }
+    restart: unless-stopped
+
+volumes:
+  mlflow-data:

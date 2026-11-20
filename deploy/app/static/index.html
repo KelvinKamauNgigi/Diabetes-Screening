@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diabetes Screening Tester</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#14202b;--mute:#5c6b78;--line:#dde3e9;--accent:#0b6e6e;--accent-ink:#fff;--warn:#9a5b00;--warn-bg:#fff4e0;--bad:#b3261e;--bad-bg:#fdecea;--ok:#1b6e3a;--ok-bg:#e8f5ec;--bar:#e8edf2}
+@media (prefers-color-scheme:dark){:root{--bg:#10171d;--card:#18222b;--ink:#e8eef3;--mute:#9db0bf;--line:#2a3945;--accent:#3fb8b0;--accent-ink:#06201f;--warn:#f0b255;--warn-bg:#33270f;--bad:#ff8a80;--bad-bg:#3a1a18;--ok:#7fd49b;--ok-bg:#15301f;--bar:#26343f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:18px 16px 4px;max-width:1100px;margin:0 auto}h1{font-size:1.35rem;margin:0}header p{margin:.25rem 0 0;color:var(--mute)}
+.banner{max-width:1100px;margin:10px auto 0;padding:0 16px}.banner div{background:var(--warn-bg);color:var(--warn);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:.88rem}
+main{max-width:1100px;margin:14px auto 40px;padding:0 16px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+h2{font-size:1rem;margin:0 0 10px}fieldset{border:0;padding:0;margin:0 0 14px}legend{font-weight:600;font-size:.85rem;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+label{display:block;font-size:.85rem;color:var(--mute)}input,select{width:100%;margin-top:3px;padding:8px 9px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.req::after{content:" *";color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}button{font:inherit;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}button.primary[disabled]{opacity:.6;cursor:wait}
+.chip{font-size:.8rem;padding:4px 10px}.hint{font-size:.8rem;color:var(--mute)}
+.result-empty{color:var(--mute)}.big{font-size:2.4rem;font-weight:700;line-height:1.1}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-weight:600;font-size:.85rem}.refer{background:var(--bad-bg);color:var(--bad)}.below{background:var(--ok-bg);color:var(--ok)}
+.gauge{position:relative;height:14px;background:var(--bar);border-radius:99px;margin:26px 0 22px}.fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--accent)}
+.mark{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink)}.mark span{position:absolute;top:22px;transform:translateX(-50%);font-size:.7rem;color:var(--mute);white-space:nowrap}.mark.top span{top:-18px}
+ul{margin:4px 0 10px;padding-left:18px}li{margin:2px 0}.up{color:var(--bad)}.down{color:var(--ok)}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 10px;margin:6px 0;font-size:.88rem}.err{background:var(--bad-bg);color:var(--bad);border-radius:8px;padding:8px 10px;margin:6px 0;font-size:.9rem}
+details{margin-top:10px}summary{cursor:pointer;color:var(--mute);font-size:.88rem}pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;font-size:.78rem;max-height:260px}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.kv div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:.82rem;color:var(--mute)}.kv b{display:block;color:var(--ink);font-size:1rem}
+</style>
+</head>
+<body>
+<header><h1>Diabetes screening: live tester</h1><p>Calls <code>POST /predict</code> on this server. Model: <span id="mname">…</span>. <a href="/docs">API docs</a></p></header>
+<div class="banner"><div><b>Research prototype, not a diagnostic device.</b> Trained on the WHO STEPS Kenya 2015 survey (81 diabetic cases). Discrimination is moderate and at the default threshold most diabetics are <i>not</i> flagged. Always confirm with a fasting glucose test.</div></div>
+<main>
+<section class="card" aria-labelledby="fh">
+<h2 id="fh">Person to score</h2>
+<div class="row" style="margin:0 0 12px"><span class="hint" style="align-self:center">Load example:</span>
+<button class="chip" type="button" data-ex="low">Younger, lean</button><button class="chip" type="button" data-ex="mid">Middle-aged, overweight</button><button class="chip" type="button" data-ex="high">Older, high BP, central obesity</button><button class="chip" type="button" data-ex="min">Age &amp; sex only</button><button class="chip" type="button" id="clear">Clear</button></div>
+<form id="f" autocomplete="off">
+<fieldset><legend>Required</legend><div class="grid grid3">
+<label><span class="req">Age (years)</span><input name="age" type="number" min="16" max="90" step="1" required></label>
+<label><span class="req">Sex</span><select name="sex" required><option value="">Select…</option><option>female</option><option>male</option></select></label>
+<label><span class="req">Residence</span><select name="residence" required><option value="">Select…</option><option>urban</option><option>rural</option></select></label></div></fieldset>
+<fieldset><legend>Measurements (more = better estimate)</legend><div class="grid">
+<label>Height (cm)<input name="height_cm" type="number" step="0.1" min="100" max="220"></label>
+<label>Weight (kg)<input name="weight_kg" type="number" step="0.1" min="25" max="250"></label>
+<label>Waist (cm)<input name="waist_cm" type="number" step="0.1" min="40" max="200"></label>
+<label>Hip (cm)<input name="hip_cm" type="number" step="0.1" min="50" max="200"></label>
+<label>Systolic BP (mmHg)<input name="systolic_bp" type="number" min="60" max="270"></label>
+<label>Diastolic BP (mmHg)<input name="diastolic_bp" type="number" min="30" max="150"></label>
+<label>Resting heart rate (bpm)<input name="heart_rate" type="number" min="30" max="220"></label>
+<label>Years of schooling<input name="years_schooling" type="number" min="0" max="25"></label></div>
+<p class="hint">Use the average of BP readings 2 and 3, as in the survey protocol.</p></fieldset>
+<fieldset><legend>History &amp; habits (optional)</legend><div class="grid" id="tri"></div></fieldset>
+<details><summary>Advanced</summary><div class="grid" style="margin-top:8px"><label>API key (only if the server sets one)<input id="key" type="password"></label>
+<label>Extra STEPS items (JSON)<input id="extra" placeholder='{"D8": 3}'></label></div></details>
+<div class="row"><button class="primary" id="go" type="submit">Estimate risk</button></div>
+</form></section>
+<section class="card" aria-live="polite"><h2>Result</h2><div id="out" class="result-empty">Fill in the form (or load an example) and press <b>Estimate risk</b>.</div></section>
+</main>
+<script>
+const TRI=[["bp_ever_measured","Blood pressure ever measured"],["told_raised_bp","Ever told BP is raised"],["on_bp_medication","On BP medication (2 wks)"],["cholesterol_ever_measured","Cholesterol ever measured"],["history_heart_attack_or_stroke","Heart attack / stroke history"],["current_smoker","Current smoker"],["ever_drank_alcohol","Ever drank alcohol"]];
+const f=document.getElementById('f'),out=document.getElementById('out'),go=document.getElementById('go');
+document.getElementById('tri').innerHTML=TRI.map(([k,l])=>`<label>${l}<select name="${k}"><option value="">Unknown</option><option value="true">Yes</option><option value="false">No</option></select></label>`).join('');
+const EX={low:{age:28,sex:'male',residence:'rural',height_cm:172,weight_kg:64,waist_cm:76,hip_cm:92,systolic_bp:114,diastolic_bp:72,heart_rate:66},
+mid:{age:47,sex:'female',residence:'urban',height_cm:160,weight_kg:74,waist_cm:94,hip_cm:104,systolic_bp:132,diastolic_bp:84,heart_rate:78},
+high:{age:62,sex:'female',residence:'urban',height_cm:156,weight_kg:88,waist_cm:112,hip_cm:114,systolic_bp:158,diastolic_bp:96,heart_rate:90,on_bp_medication:true,bp_ever_measured:true,told_raised_bp:true},
+min:{age:45,sex:'male',residence:'urban'}};
+function fill(o){f.reset();for(const [k,v] of Object.entries(o)){const e=f.elements[k];if(e)e.value=String(v);}}
+document.querySelectorAll('[data-ex]').forEach(b=>b.onclick=()=>{fill(EX[b.dataset.ex]);f.requestSubmit();});
+document.getElementById('clear').onclick=()=>{f.reset();out.className='result-empty';out.textContent='Fill in the form (or load an example) and press Estimate risk.';};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function payload(){const p={},num=new Set(['age','height_cm','weight_kg','waist_cm','hip_cm','systolic_bp','diastolic_bp','heart_rate','years_schooling']);
+for(const e of f.elements){if(!e.name||e.value==='')continue;p[e.name]=num.has(e.name)?Number(e.value):(e.value==='true'?true:e.value==='false'?false:e.value);}
+const x=document.getElementById('extra').value.trim();if(x)p.extra_items=JSON.parse(x);return p;}
+f.onsubmit=async ev=>{ev.preventDefault();let p;try{p=payload();}catch(e){out.className='';out.innerHTML='<div class="err">Extra items must be valid JSON.</div>';return;}
+go.disabled=true;go.textContent='Scoring…';
+try{const h={'Content-Type':'application/json'};const k=document.getElementById('key').value;if(k)h['X-API-Key']=k;
+const r=await fetch('/predict',{method:'POST',headers:h,body:JSON.stringify(p)});const j=await r.json();
+if(!r.ok){const d=j.detail;const msg=Array.isArray(d)?d.map(x=>`<li><b>${esc((x.loc||[]).slice(1).join('.')||'input')}</b>: ${esc(x.msg)}</li>`).join(''):`<li>${esc(d)}</li>`;out.className='';out.innerHTML=`<div class="err">The request was rejected:<ul>${msg}</ul></div>`;return;}
+show(j,p);}catch(e){out.className='';out.innerHTML=`<div class="err">Could not reach the API: ${esc(e)}</div>`;}finally{go.disabled=false;go.textContent='Estimate risk';}};
+function show(j,p){out.className='';const max=Math.max(0.3,j.referral_threshold*2.5),pos=v=>Math.min(100,100*v/max);
+const refer=j.decision==='refer_for_confirmatory_test';
+const li=(a,c)=>a.length?`<ul>${a.map(d=>`<li class="${c}">${esc(d.factor)} <span class="hint">(${d.log_odds>0?'+':''}${d.log_odds})</span></li>`).join('')}</ul>`:'<p class="hint">none among supplied items</p>';
+out.innerHTML=`<div class="big">${j.risk_percent}%</div><div class="hint">estimated probability of diabetes (survey average ≈ 2.8%)</div>
+<p><span class="pill ${refer?'refer':'below'}">${refer?'Refer for confirmatory glucose test':'Below referral threshold'}</span></p>
+<div class="gauge" role="img" aria-label="risk gauge"><div class="fill" style="width:${pos(j.risk_probability)}%"></div>
+<div class="mark top" style="left:${pos(0.0284)}%"><span>average 2.8%</span></div><div class="mark" style="left:${pos(j.referral_threshold)}%"><span>threshold ${(100*j.referral_threshold).toFixed(1)}%</span></div></div>
+<div class="kv"><div><b>${j.times_average_risk}×</b>average risk</div><div><b>${j.percentile_vs_survey}th</b>percentile vs survey</div><div><b>${esc(j.measurements_supplied)}</b>key measurements (${esc(j.reliability)} reliability)</div></div>
+${j.warnings.map(w=>`<div class="warn">${esc(w)}</div>`).join('')}
+<h2 style="margin-top:12px">What moved the estimate</h2><div class="hint">Pushing risk up</div>${li(j.drivers.increase,'up')}<div class="hint">Pulling risk down</div>${li(j.drivers.decrease,'down')}
+<div class="hint">Derived: BMI ${j.derived.bmi??'n/a'}, waist-hip ${j.derived.whr??'n/a'}, mean BP ${j.derived.sbp??'n/a'}/${j.derived.dbp??'n/a'}</div>
+<details><summary>Request and raw response</summary><pre>${esc(JSON.stringify(p,null,2))}</pre><pre>${esc(JSON.stringify(j,null,2))}</pre></details><p class="hint" style="margin-top:10px">${esc(j.disclaimer)}</p>`;}
+fetch('/model-info').then(r=>r.json()).then(m=>{document.getElementById('mname').textContent=`${m.champion} (${m.n_features} features, test AUC ${(m.test&&m.test['ROC-AUC']||0).toFixed(2)})`;}).catch(()=>{});
+</script>
+</body></html>

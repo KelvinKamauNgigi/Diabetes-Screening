@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.pytest_cache/
+.env
+mlruns/
+deploy/mlruns/
+diabetes_model/cache/
+*.db
+uvicorn.log
+# survey data (not needed by the API)
+*.csv

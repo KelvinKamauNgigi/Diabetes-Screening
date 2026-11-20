@@ -1,0 +1,17 @@
+# MLflow tracking server + job runner (kept separate from the API image so the API stays small).
+FROM python:3.13-slim
+ENV PYTHONUNBUFFERED=1 MLFLOW_DISABLE_AGENT_HINT=1 PIP_NO_CACHE_DIR=1 GIT_PYTHON_REFRESH=quiet
+WORKDIR /srv
+COPY deploy/requirements.txt deploy/requirements-mlflow.txt ./
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 curl && rm -rf /var/lib/apt/lists/* \
+    && pip install -r requirements.txt -r requirements-mlflow.txt
+COPY deploy/app ./app
+COPY deploy/mlops ./mlops
+COPY deploy/scripts ./scripts
+COPY deploy/model ./model
+RUN useradd -r -u 10002 mlflow && mkdir /mlflow-data && chown -R mlflow /srv /mlflow-data
+USER mlflow
+EXPOSE 5000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s CMD curl -fs http://localhost:5000/health || exit 1
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000", "--backend-store-uri", "sqlite:////mlflow-data/mlflow.db", \
+     "--artifacts-destination", "/mlflow-data/artifacts", "--serve-artifacts", "--allowed-hosts", "localhost:5000,127.0.0.1:5000,mlflow:5000"]

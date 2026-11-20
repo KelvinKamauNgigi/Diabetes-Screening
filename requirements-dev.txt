@@ -1,0 +1,10 @@
+# Full environment: notebook + API + MLflow + tests  (pip install -r requirements-dev.txt)
+-r deploy/requirements.txt
+-r deploy/requirements-mlflow.txt
+seaborn==0.13.2
+shap==0.54.1
+optuna==5.1.0
+ipykernel==7.4.0
+nbformat==5.11.1
+httpx==0.28.1
+pytest
